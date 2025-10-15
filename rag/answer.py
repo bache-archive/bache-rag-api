@@ -1,9 +1,10 @@
 """
-rag/answer.py — Citation-grounded synthesis for the Bache Talks RAG
+rag/answer.py — Citation-grounded synthesis for Bache Talks RAG
 
-This module turns retrieved chunks into a short, multi-talk, citation-grounded answer.
-It's LLM-free for now (deterministic stitching) but preserves the output shape so you can
-swap in an LLM later without changing the API.
+- Uses OpenAI (if OPENAI_API_KEY is set) to write a 2–5 sentence answer
+  grounded ONLY in retrieved transcript snippets.
+- Falls back to a compact extractive summary when no API key or model is available.
+- Returns structured citations matching the chunks actually used.
 
 Contract:
     synthesize(query: str, chunk_ids: List[str]) -> Dict
@@ -17,164 +18,134 @@ Returns:
     }
 """
 
-from typing import List, Dict, Tuple, Optional
-import itertools
+from typing import List, Dict
+import os
+import re
 
-# Demo-mode retrieval/lookup hooks
-from rag.retrieve import _SAMPLE as DEMO_CHUNKS
-from rag.retrieve import search_chunks as retrieve_search
+# Retrieval hooks
+from rag.retrieve import search_chunks
 
-
-# ----------------------------
-# Helpers
-# ----------------------------
-
-def make_chunk_id(chunk: Dict) -> str:
-    """Stable ID format used by the demo: '{talk_id}:{chunk_index}'."""
-    return f"{chunk['talk_id']}:{chunk['chunk_index']}"
-
-
-def index_demo_chunks() -> Dict[str, Dict]:
-    """Build an in-memory ID -> chunk map from the demo sample."""
-    return {make_chunk_id(c): c for c in DEMO_CHUNKS}
-
-
-def dedupe_preserve_order(chunks: List[Dict]) -> List[Dict]:
-    seen: set[Tuple[str, int]] = set()
-    out: List[Dict] = []
-    for c in chunks:
-        key = (c["talk_id"], c["chunk_index"])
-        if key not in seen:
-            seen.add(key)
-            out.append(c)
-    return out
-
-
-def diversify_by_talk(chunks: List[Dict], per_talk_limit: int = 3) -> List[Dict]:
-    """Limit the number of chunks per talk to improve cross-talk coverage."""
-    buckets: Dict[str, List[Dict]] = {}
-    for c in chunks:
-        buckets.setdefault(c["talk_id"], []).append(c)
-    diversified: List[Dict] = []
-    for talk_id, lst in buckets.items():
-        diversified.extend(lst[:per_talk_limit])
-    return diversified
-
-
-def format_citation_obj(c: Dict) -> Dict:
-    return {
-        "talk_id": c["talk_id"],
-        "archival_title": c["archival_title"],
-        "recorded_date": c["recorded_date"],
-        "chunk_index": c["chunk_index"],
-    }
-
-
-def pick_citations(chunks: List[Dict], max_citations: int = 4) -> List[Dict]:
-    """
-    Prefer 1 per talk first (breadth), then fill remaining slots by rank.
-    """
-    if not chunks:
+# Optional: direct lookup by "talk_id:chunk_index" if your retrieve.py exposes it.
+try:
+    from rag.retrieve import get_chunks_by_ids  # type: ignore
+except Exception:
+    def get_chunks_by_ids(chunk_ids: List[str]) -> List[Dict]:
+        # Graceful fallback if helper isn't present
         return []
 
-    # First pass: one per talk (preserving order)
-    by_talk_first: List[Dict] = []
-    seen_talks: set[str] = set()
-    for c in chunks:
-        if c["talk_id"] not in seen_talks:
-            seen_talks.add(c["talk_id"])
-            by_talk_first.append(c)
+# ----------------------------
+# Optional OpenAI client
+# ----------------------------
+_OPENAI_KEY = os.getenv("OPENAI_API_KEY")
+_MODEL = os.getenv("ANSWERS_MODEL", "gpt-4o-mini")  # small, fast; change if you like
 
-    citations: List[Dict] = [format_citation_obj(c) for c in by_talk_first[:max_citations]]
-
-    # If we still have room, append more in original order (avoiding duplicates)
-    if len(citations) < max_citations:
-        chosen_keys = {(ct["talk_id"], ct["chunk_index"]) for ct in citations}
-        for c in chunks:
-            key = (c["talk_id"], c["chunk_index"])
-            if key not in chosen_keys:
-                citations.append(format_citation_obj(c))
-                chosen_keys.add(key)
-                if len(citations) >= max_citations:
-                    break
-
-    return citations
-
-
-def simple_summarize(query: str, chunks: List[Dict], target_sentences: Tuple[int, int] = (2, 6)) -> str:
-    """
-    Deterministic, lightweight compositor (no LLM yet).
-    Strategy:
-      - Take 2–3 short excerpts from diversified top chunks.
-      - Add connective tissue to read as a coherent paragraph.
-      - Keep it crisp; avoid repetition.
-    """
-    if not chunks:
-        return "No relevant passages were found in the public talks for this query. Try refining the topic or naming a talk or date."
-
-    # Pull up to 3 short excerpts to avoid verbosity
-    excerpts: List[str] = []
-    for c in chunks[:3]:
-        t = c["text"].strip()
-        # Trim very long snippets to keep answer tight (~220 chars)
-        if len(t) > 220:
-            t = t[:217].rstrip() + "…"
-        excerpts.append(t)
-
-    # Compose
-    lead = f"This summary draws on multiple public talks related to “{query}.”"
-    body_parts: List[str] = []
-    if excerpts:
-        body_parts.append(excerpts[0])
-    if len(excerpts) > 1:
-        body_parts.append(excerpts[1])
-    if len(excerpts) > 2:
-        body_parts.append(excerpts[2])
-
-    # Simple connective phrasing
-    joined = " ".join(body_parts)
-    conclusion = "Together these passages outline a coherent view across Bache’s talks."
-
-    return " ".join([lead, joined, conclusion]).strip()
-
+_openai_client = None
+if _OPENAI_KEY:
+    try:
+        from openai import OpenAI
+        _openai_client = OpenAI(api_key=_OPENAI_KEY)
+    except Exception:
+        _openai_client = None
 
 # ----------------------------
-# Public API
+# Tunables
 # ----------------------------
+MAX_CHUNKS_FOR_SYNTH = 6   # smaller context → crisper answers
+MAX_SNIPPET_CHARS   = 750  # trim each snippet before sending to the LLM
+
+
+def _trim_to_sentence(s: str, limit: int) -> str:
+    s = (s or "").strip()
+    if len(s) <= limit:
+        return s
+    cut = s[:limit]
+    # try to end on a sentence boundary
+    # reverse search for punctuation near the end
+    rev = cut[::-1]
+    m = re.search(r"(?s)[.!?](?:\"|')?\s", rev)
+    if m:
+        end = len(cut) - m.start()
+        return s[:end].strip()
+    return cut.rstrip(" ,;—") + "…"
+
+
+def _format_context(chunks: List[Dict]) -> str:
+    lines = []
+    for c in chunks[:MAX_CHUNKS_FOR_SYNTH]:
+        head = f"[{c.get('recorded_date') or 'UNKNOWN'}, {c.get('archival_title','')}, chunk {c.get('chunk_index',0)}]"
+        text = _trim_to_sentence(c.get("text", ""), MAX_SNIPPET_CHARS)
+        lines.append(f"{head}\n{text}")
+    return "\n\n".join(lines)
+
+
+def _citations_from_chunks(chunks: List[Dict]) -> List[Dict]:
+    cites = []
+    for c in chunks[:MAX_CHUNKS_FOR_SYNTH]:
+        cites.append({
+            "talk_id":        c.get("talk_id", ""),
+            "archival_title": c.get("archival_title", ""),
+            "recorded_date":  c.get("recorded_date", ""),
+            "chunk_index":    int(c.get("chunk_index", 0)),
+        })
+    return cites
+
+
+def _llm_answer(query: str, chunks: List[Dict]) -> str:
+    """Generate a short, citation-grounded answer with OpenAI. Returns '' on failure."""
+    if _openai_client is None:
+        return ""
+    system = (
+        "You are the librarian of the Chris Bache public talks archive. "
+        "Answer ONLY from the provided transcript snippets. Do NOT invent any facts. "
+        "Write 2–5 concise sentences in a neutral, precise tone. "
+        "Do not include bracketed references like [1]; citations are returned separately."
+    )
+    user = (
+        f"Question: {query}\n\n"
+        f"Snippets (each labeled with date/title/chunk):\n\n{_format_context(chunks)}\n\n"
+        "Write a 2–5 sentence answer grounded ONLY in the snippets above."
+    )
+    try:
+        resp = _openai_client.chat.completions.create(
+            model=_MODEL,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            temperature=0.2,
+        )
+        return (resp.choices[0].message.content or "").strip()
+    except Exception:
+        return ""
+
+
+def _extractive_fallback(chunks: List[Dict], query: str) -> str:
+    """No OpenAI or failure → compact extractive synthesis."""
+    snippets: List[str] = []
+    for c in chunks[:MAX_CHUNKS_FOR_SYNTH]:
+        t = _trim_to_sentence(c.get("text", ""), 280)
+        if t:
+            snippets.append(t)
+    if not snippets:
+        return "No relevant passages were found in the public talks archive for this query."
+    # Keep it to ~3 sentences max
+    return " ".join(snippets[:3]).rstrip(" ,;—") + "."
+
 
 def synthesize(query: str, chunk_ids: List[str]) -> Dict:
     """
-    If chunk_ids are provided, look them up; otherwise perform a fresh search.
-    Returns a concise answer with 2–4 citations when available.
+    If chunk_ids are provided, look them up; otherwise retrieve automatically.
+    Always returns {'answer': str, 'citations': [...] }.
     """
-    # Resolve chunks
-    chunks: List[Dict] = []
-    if chunk_ids:
-        # Demo lookup from in-memory sample
-        id_index = index_demo_chunks()
-        for cid in chunk_ids:
-            c = id_index.get(cid)
-            if c:
-                chunks.append(c)
-    else:
-        # Auto-retrieve when no IDs are supplied
-        chunks = retrieve_search(query, top_k=8)
+    chunks = get_chunks_by_ids(chunk_ids) if chunk_ids else search_chunks(query, top_k=8)
 
-    # Normalize: dedupe, diversify, cap to 8
-    chunks = dedupe_preserve_order(chunks)
-    chunks = diversify_by_talk(chunks, per_talk_limit=3)[:8]
+    if not chunks:
+        return {
+            "answer": "No relevant passages were found in the public talks archive for this query.",
+            "citations": [],
+        }
 
-    # Compose deterministic answer
-    answer_text = simple_summarize(query, chunks)
-
-    # Pick citations (aim for 2–4 if available)
-    citations = pick_citations(chunks, max_citations=4)
-    if len(citations) == 1 and len(chunks) > 1:
-        # Nudge toward at least 2 citations when content allows
-        extra = pick_citations(chunks[1:], max_citations=1)
-        citations.extend(extra)
-
-    return {
-        "answer": answer_text,
-        "citations": citations,
-    }
+    # Try the LLM first; if unavailable, fall back to extractive
+    answer = _llm_answer(query, chunks) or _extractive_fallback(chunks, query)
+    citations = _citations_from_chunks(chunks)
+    return {"answer": answer, "citations": citations}
