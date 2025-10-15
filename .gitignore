@@ -1,0 +1,54 @@
+# --- macOS system files ---
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+
+# --- Python build / venv ---
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Python package metadata
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+
+# Byte-compiled / cache
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo
+
+# --- Environment & secrets ---
+.env
+.env.*
+*.env
+.envrc
+
+# --- IDE / editor configs ---
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# --- Jupyter / notebooks ---
+.ipynb_checkpoints/
+*.ipynb_save
+*.nbconvert.*
+
+# --- OS & miscellaneous ---
+Thumbs.db
+Desktop.ini
