@@ -275,6 +275,36 @@ def rag_status() -> dict:
         "meta_rows": meta_rows,
     }
 
+# --- Direct lookup by chunk_ids like "talk_id:chunk_index" -------------------
+def get_chunks_by_ids(chunk_ids: List[str]) -> List[Dict]:
+    """Return chunks matching explicit ids; empty if FAISS/meta not available."""
+    _load_index_and_meta()
+    if _meta_df is None:
+        return []
+    out: List[Dict] = []
+    for cid in chunk_ids:
+        try:
+            talk_id, idx_str = cid.split(":")
+            cidx = int(idx_str)
+        except Exception:
+            continue
+        hit = _meta_df[
+            (_meta_df["talk_id"] == talk_id) & (_meta_df["chunk_index"] == cidx)
+        ]
+        if len(hit) == 0:
+            continue
+        row = hit.iloc[0]
+        out.append({
+            "talk_id":        str(row.get("talk_id", "")),
+            "archival_title": str(row.get("archival_title", "")),
+            "recorded_date":  str(row.get("recorded_date", "")),
+            "chunk_index":    int(row.get("chunk_index", 0)),
+            "text":           str(row.get("text", "")),
+            "token_estimate": int(row.get("token_estimate", 0)) if "token_estimate" in row else None,
+            "sha256":         str(row.get("sha256", "")) if "sha256" in row else None,
+        })
+    return out
+
 # Convenience for CLI testing
 if __name__ == "__main__":  # pragma: no cover
     import json
