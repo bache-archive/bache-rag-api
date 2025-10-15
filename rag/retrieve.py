@@ -1,22 +1,61 @@
 """
 rag/retrieve.py — Semantic retrieval layer for the Bache Talks RAG
 
-This module abstracts vector search and returns a balanced list of transcript chunks
-ready for synthesis.  It currently uses a mock sample but preserves the same data shape
-as the real FAISS-backed implementation.
-
-Later, you can replace `perform_search()` with a call to your FAISS index.
+- Lazy-loads FAISS index + Parquet metadata from env paths
+- Performs semantic search with OpenAI embeddings → FAISS nearest neighbors
+- Diversifies results (≤ MAX_PER_TALK per talk)
+- Falls back to a small demo sample if FAISS or files are unavailable
 """
 
-from typing import List, Dict
+from typing import List, Dict, Tuple, Optional
+import os
 import logging
 
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------
-# Mock data (same schema as real chunks)
-# ---------------------------------------------------------------------
+# ----------------------------
+# Environment / constants
+# ----------------------------
+FAISS_INDEX_PATH = os.getenv("FAISS_INDEX_PATH", "vectors/bache-talks.index.faiss")
+METADATA_PATH    = os.getenv("METADATA_PATH", "vectors/bache-talks.embeddings.parquet")
+EMBED_MODEL      = os.getenv("EMBED_MODEL", "text-embedding-3-large")
+EMBED_DIM        = int(os.getenv("EMBED_DIM", "3072"))
+MAX_PER_TALK     = int(os.getenv("MAX_PER_TALK", "3"))
 
+# ----------------------------
+# Optional deps (guarded)
+# ----------------------------
+try:
+    import faiss  # type: ignore
+except Exception:  # pragma: no cover
+    faiss = None
+
+try:
+    import numpy as np
+    import pandas as pd
+except Exception:  # pragma: no cover
+    np = None
+    pd = None
+
+# OpenAI client (only used when doing real search)
+_OPENAI_KEY = os.getenv("OPENAI_API_KEY")
+_openai_client = None
+if _OPENAI_KEY:
+    try:
+        from openai import OpenAI
+        _openai_client = OpenAI(api_key=_OPENAI_KEY)
+    except Exception:
+        _openai_client = None
+
+# ----------------------------
+# Globals (lazy-loaded)
+# ----------------------------
+_faiss_index = None  # type: ignore
+_meta_df: Optional["pd.DataFrame"] = None
+
+# ----------------------------
+# Demo sample (fallback)
+# ----------------------------
 _SAMPLE: List[Dict] = [
     {
         "talk_id": "2018-08-30-diamonds-from-heaven",
@@ -47,51 +86,197 @@ _SAMPLE: List[Dict] = [
     },
 ]
 
-# ---------------------------------------------------------------------
-# Core retrieval
-# ---------------------------------------------------------------------
+# ----------------------------
+# Loaders
+# ----------------------------
+def _load_index_and_meta() -> None:
+    """Idempotent lazy loader for FAISS index + Parquet metadata."""
+    global _faiss_index, _meta_df
 
+    if _faiss_index is not None and _meta_df is not None:
+        return
+
+    print("[RAG] Loading FAISS + metadata...")  # visible in Render logs
+
+    # Hard guards
+    if faiss is None or np is None or pd is None:
+        print("[RAG] faiss/pandas/numpy not available; using demo fallback")
+        _faiss_index = None
+        _meta_df = None
+        return
+
+    if not os.path.exists(FAISS_INDEX_PATH) or not os.path.exists(METADATA_PATH):
+        print(f"[RAG] Files missing. FAISS_INDEX_PATH={FAISS_INDEX_PATH} exists={os.path.exists(FAISS_INDEX_PATH)}")
+        print(f"[RAG] Files missing. METADATA_PATH={METADATA_PATH} exists={os.path.exists(METADATA_PATH)}")
+        _faiss_index = None
+        _meta_df = None
+        return
+
+    # Load index + metadata
+    _faiss_index = faiss.read_index(FAISS_INDEX_PATH)
+    _meta_df = pd.read_parquet(METADATA_PATH)
+
+    print(f"[RAG] FAISS ready: ntotal={_faiss_index.ntotal}, dim={getattr(_faiss_index, 'd', None)}")
+    print(f"[RAG] Metadata: rows={len(_meta_df)} cols={list(_meta_df.columns)}")
+
+
+def _embed_query(text: str) -> Optional["np.ndarray"]:
+    """Embed query using OpenAI; return float32 vector of EMBED_DIM (normalized)."""
+    if _openai_client is None or np is None:
+        return None
+    try:
+        resp = _openai_client.embeddings.create(model=EMBED_MODEL, input=text)
+        vec = np.array(resp.data[0].embedding, dtype="float32")
+        if vec.shape[0] != EMBED_DIM:
+            # Mismatch safety
+            return None
+        # Normalize for cosine (IndexFlatIP with unit-normalized vectors)
+        norm = np.linalg.norm(vec)
+        if norm > 0:
+            vec = vec / norm
+        return vec
+    except Exception as e:
+        logger.warning("OpenAI embed failed: %s", e)
+        return None
+
+# ----------------------------
+# Public API
+# ----------------------------
 def perform_search(query: str, top_k: int = 16) -> List[Dict]:
     """
-    Placeholder for semantic search.  For now, returns mock data.
-    Replace with FAISS cosine-similarity lookup later.
+    Semantic search:
+      - If FAISS + metadata + OpenAI are available, do real ANN search
+      - Else, return demo sample
     """
-    logger.debug(f"Mock search for query='{query}' (top_k={top_k})")
-    return _SAMPLE[: min(top_k, len(_SAMPLE))]
+    _load_index_and_meta()
 
+    if _faiss_index is None or _meta_df is None:
+        logger.info("Using demo fallback (FAISS/meta not ready)")
+        return _SAMPLE[: min(top_k, len(_SAMPLE))]
+
+    qvec = _embed_query(query)
+    if qvec is None:
+        logger.info("Embedding unavailable; returning first rows as fallback")
+        # Return first rows (deterministic) to prove we're reading real metadata
+        return _rows_to_chunks(list(range(min(top_k, len(_meta_df)))))
+
+    # Search FAISS (IP assumes vectors in index are already normalized)
+    try:
+        q = qvec.reshape(1, -1)
+        scores, ids = _faiss_index.search(q, top_k * 4)  # overfetch for diversity
+        idxs = [int(i) for i in ids[0] if i >= 0]
+        return _rows_to_chunks(idxs)
+    except Exception as e:
+        logger.warning("FAISS search failed (%s); using metadata fallback", e)
+        return _rows_to_chunks(list(range(min(top_k, len(_meta_df)))))
+
+def _rows_to_chunks(row_idxs: List[int]) -> List[Dict]:
+    """Map row indices in the Parquet metadata to chunk dicts (with diversity)."""
+    assert _meta_df is not None
+    results: List[Dict] = []
+    seen_per_talk: Dict[str, int] = {}
+
+    for ridx in row_idxs:
+        if ridx < 0 or ridx >= len(_meta_df):
+            continue
+        row = _meta_df.iloc[ridx]
+
+        # Expected columns (adapt if your Parquet uses different names)
+        talk_id        = str(row.get("talk_id", ""))
+        archival_title = str(row.get("archival_title", ""))
+        recorded_date  = str(row.get("recorded_date", ""))
+        chunk_index    = int(row.get("chunk_index", 0))
+        text           = str(row.get("text", ""))
+        token_estimate = int(row.get("token_estimate", 0)) if "token_estimate" in row else None
+        sha256         = str(row.get("sha256", "")) if "sha256" in row else None
+
+        # Per-talk cap
+        cnt = seen_per_talk.get(talk_id, 0)
+        if cnt >= MAX_PER_TALK:
+            continue
+        seen_per_talk[talk_id] = cnt + 1
+
+        results.append({
+            "talk_id": talk_id,
+            "archival_title": archival_title,
+            "recorded_date": recorded_date,
+            "chunk_index": chunk_index,
+            "text": text,
+            "token_estimate": token_estimate,
+            "sha256": sha256,
+        })
+
+    return results
 
 def search_chunks(query: str, top_k: int = 8) -> List[Dict]:
     """
     Retrieve semantically similar transcript chunks for a natural-language query.
-
-    - Uses FAISS (future) or mock list (current)
-    - Diversifies results: ≤3 chunks per talk
-    - Returns at most `top_k` total
+    Diversifies results to ≤ MAX_PER_TALK and caps at top_k.
     """
-    raw_results = perform_search(query, top_k=top_k * 2)
+    raw = perform_search(query, top_k=max(top_k * 3, 16))  # overfetch to allow diversity
+    # Deduplicate by (talk_id, chunk_index) while preserving order
+    dedup: List[Dict] = []
+    seen: set[Tuple[str, int]] = set()
+    for r in raw:
+        key = (r["talk_id"], r["chunk_index"])
+        if key in seen:
+            continue
+        seen.add(key)
+        dedup.append(r)
 
-    # Group by talk_id for diversity
+    # Group and take ≤ MAX_PER_TALK per talk (already enforced in _rows_to_chunks, but keep belt+suspenders)
     grouped: Dict[str, List[Dict]] = {}
-    for r in raw_results:
+    for r in dedup:
         grouped.setdefault(r["talk_id"], []).append(r)
 
-    # Limit 3 per talk, preserve order
     diversified: List[Dict] = []
-    for talk_id, chunks in grouped.items():
-        diversified.extend(chunks[:3])
+    for _, chunks in grouped.items():
+        diversified.extend(chunks[:MAX_PER_TALK])
 
-    # Cap total to top_k
-    diversified = diversified[:top_k]
+    return diversified[:top_k]
 
-    logger.debug(f"Returning {len(diversified)} chunks from {len(grouped)} talks")
-    return diversified
+# --- RAG runtime status (for /_rag_status) ---
+def rag_status() -> dict:
+    """Return runtime status for FAISS + metadata (safe to expose)."""
+    global _faiss_index, _meta_df
+    try:
+        _load_index_and_meta()
+    except Exception as e:
+        return {
+            "faiss_imported": faiss is not None,
+            "index_loaded": _faiss_index is not None,
+            "meta_loaded": _meta_df is not None,
+            "error": f"{type(e).__name__}: {e}",
+        }
 
+    # Extract some internals (guarded)
+    index_dim = None
+    index_ntotal = None
+    try:
+        if _faiss_index is not None:
+            index_ntotal = int(getattr(_faiss_index, "ntotal", 0))
+            index_dim = int(getattr(_faiss_index, "d", EMBED_DIM))
+    except Exception:
+        pass
 
-# ---------------------------------------------------------------------
+    meta_rows = None
+    try:
+        if _meta_df is not None:
+            meta_rows = int(len(_meta_df))
+    except Exception:
+        pass
+
+    return {
+        "faiss_imported": faiss is not None,
+        "index_loaded": _faiss_index is not None,
+        "index_ntotal": index_ntotal,
+        "index_dim": index_dim,
+        "meta_loaded": _meta_df is not None,
+        "meta_rows": meta_rows,
+    }
+
 # Convenience for CLI testing
-# ---------------------------------------------------------------------
-
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     import json
     res = search_chunks("Future Human", top_k=8)
     print(json.dumps(res, indent=2))

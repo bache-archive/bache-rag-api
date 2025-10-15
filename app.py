@@ -17,7 +17,7 @@ from fastapi.openapi.utils import get_openapi
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel, Field
 
-from rag.retrieve import search_chunks
+from rag.retrieve import search_chunks, rag_status
 from rag.answer import synthesize
 
 # ---------------------------------------------------------------------
@@ -174,6 +174,19 @@ def debug_status() -> dict:
             "metadata_exists": os.path.exists(METADATA_PATH),
         },
     }
+    
+@app.get("/_rag_status", tags=["meta"], summary="RAG/FAISS runtime status")
+def get_rag_status() -> dict:
+    """
+    Report runtime status of FAISS + metadata (and whether an OpenAI key is present).
+    """
+    has_openai = bool(os.getenv("OPENAI_API_KEY"))
+    try:
+        status = rag_status()
+    except Exception as e:
+        status = {"error": f"{type(e).__name__}: {e}"}
+    status["has_openai_key"] = has_openai
+    return status
 
 
 # ---------------------------------------------------------------------
