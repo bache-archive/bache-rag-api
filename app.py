@@ -1,7 +1,7 @@
 import os
 from typing import List, Optional
 
-from fastapi import FastAPI, HTTPException, Security
+from fastapi import FastAPI, HTTPException, Security, Response
 from fastapi.openapi.utils import get_openapi
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel, Field
@@ -16,8 +16,8 @@ SERVICE_VERSION = "3.0-alpha"
 ALLOW_ORIGINS = os.getenv("CORS_ALLOW_ORIGINS")  # e.g. "*", or "https://your.site"
 BASE_URL = os.getenv("BASE_URL", "https://bache-rag-api.onrender.com")
 
-# --- Security scheme (API Key in Authorization header) ---
-api_key_header = APIKeyHeader(name="Authorization", auto_error=False)
+# --- Security scheme (single, named 'ApiKeyAuth') ---
+api_key_header = APIKeyHeader(name="Authorization", scheme_name="ApiKeyAuth", auto_error=False)
 
 def _check_auth(authorization: Optional[str]):
     if not authorization or authorization != f"Bearer {API_KEY}":
@@ -74,10 +74,14 @@ if ALLOW_ORIGINS:
         allow_headers=["*"],
     )
 
-# Accept GET and HEAD so Render health checks pass
-@app.api_route("/", methods=["GET", "HEAD"], tags=["meta"], summary="Root", response_model=HealthResponse)
+# GET shows in schema; HEAD is hidden (but serves Render health checks)
+@app.get("/", tags=["meta"], summary="Root", response_model=HealthResponse)
 def root() -> HealthResponse:
     return HealthResponse(ok=True, service=SERVICE_NAME, version=SERVICE_VERSION)
+
+@app.head("/", include_in_schema=False)
+def root_head():
+    return Response(status_code=200)
 
 @app.post("/search", response_model=SearchResponse, tags=["rag"], summary="Semantic search over chunk index")
 def search(req: SearchRequest, authorization: Optional[str] = Security(api_key_header)):
@@ -90,7 +94,7 @@ def answer(req: AnswerRequest, authorization: Optional[str] = Security(api_key_h
     _check_auth(authorization)
     return synthesize(req.query, req.chunk_ids)
 
-# --- Custom OpenAPI with `servers` ---
+# --- Custom OpenAPI: add `servers`, keep exactly ONE security scheme ---
 def custom_openapi():
     if app.openapi_schema:
         return app.openapi_schema
@@ -99,12 +103,13 @@ def custom_openapi():
         version=SERVICE_VERSION,
         routes=app.routes,
     )
-    # Advertise the base URL so the GPT builder doesn't warn
+    # Base URL so GPT builder doesn't warn
     openapi_schema["servers"] = [{"url": BASE_URL}]
-    # Also model API key as a security scheme to keep linters happy (optional)
-    openapi_schema.setdefault("components", {}).setdefault("securitySchemes", {}).update({
+    # Ensure only ONE security scheme is advertised (matches scheme_name above)
+    openapi_schema.setdefault("components", {}).setdefault("securitySchemes", {})
+    openapi_schema["components"]["securitySchemes"] = {
         "ApiKeyAuth": {"type": "apiKey", "in": "header", "name": "Authorization"}
-    })
+    }
     openapi_schema["security"] = [{"ApiKeyAuth": []}]
     app.openapi_schema = openapi_schema
     return app.openapi_schema
