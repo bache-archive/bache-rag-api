@@ -9,6 +9,7 @@ License: CC0-1.0
 """
 
 import os
+import logging
 from typing import List, Optional
 
 from fastapi import FastAPI, HTTPException, Security, Response
@@ -20,6 +21,12 @@ from rag.retrieve import search_chunks
 from rag.answer import synthesize
 
 # ---------------------------------------------------------------------
+# Logging (ensure INFO shows in Render logs)
+# ---------------------------------------------------------------------
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("bache-rag-api")
+
+# ---------------------------------------------------------------------
 # Settings
 # ---------------------------------------------------------------------
 API_KEY = os.getenv("API_KEY", "dev")
@@ -27,6 +34,10 @@ SERVICE_NAME = "Bache Talks RAG API"
 SERVICE_VERSION = "3.0-alpha"
 BASE_URL = os.getenv("BASE_URL", "https://bache-rag-api.onrender.com")
 ALLOW_ORIGINS = os.getenv("CORS_ALLOW_ORIGINS")  # e.g. "*", or "https://your.site"
+
+# For debug endpoint defaults (also used by retrieve.py via env)
+FAISS_INDEX_PATH = os.getenv("FAISS_INDEX_PATH", "vectors/bache-talks.index.faiss")
+METADATA_PATH = os.getenv("METADATA_PATH", "vectors/bache-talks.embeddings.parquet")
 
 # Single security scheme — avoids GPT “multiple security schemes” error
 api_key_header = APIKeyHeader(name="Authorization", scheme_name="ApiKeyAuth", auto_error=False)
@@ -127,6 +138,7 @@ def root_head():
 def search(req: SearchRequest, authorization: Optional[str] = Security(api_key_header)):
     """Return top-K semantic matches for the query."""
     _check_auth(authorization)
+    logger.info("SEARCH query=%r top_k=%d", req.query, req.top_k)
     chunks = search_chunks(req.query, req.top_k)
     return SearchResponse(chunks=chunks)
 
@@ -137,10 +149,31 @@ def answer(req: AnswerRequest, authorization: Optional[str] = Security(api_key_h
     Generate a short, citation-grounded summary.
 
     If `chunk_ids` are provided, they are looked up; otherwise the system
-    performs retrieval internally before composing an answer.
+    performs retrieval internally before composing an answer (handled inside synthesize()).
     """
     _check_auth(authorization)
+    logger.info("ANSWER query=%r chunk_ids=%d", req.query, len(req.chunk_ids or []))
     return synthesize(req.query, req.chunk_ids)
+
+
+# --- DEBUG: verify env + file existence --------------------------------
+@app.get("/_debug", tags=["meta"], summary="Debug file/env status")
+def debug_status() -> dict:
+    """Expose basic env + file presence to help diagnose FAISS loading in Render."""
+    return {
+        "cwd": os.getcwd(),
+        "env": {
+            "FAISS_INDEX_PATH": FAISS_INDEX_PATH,
+            "METADATA_PATH": METADATA_PATH,
+            "EMBED_MODEL": os.getenv("EMBED_MODEL"),
+            "EMBED_DIM": os.getenv("EMBED_DIM"),
+            "MAX_PER_TALK": os.getenv("MAX_PER_TALK"),
+        },
+        "exists": {
+            "faiss_index_exists": os.path.exists(FAISS_INDEX_PATH),
+            "metadata_exists": os.path.exists(METADATA_PATH),
+        },
+    }
 
 
 # ---------------------------------------------------------------------
