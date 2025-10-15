@@ -74,7 +74,8 @@ if ALLOW_ORIGINS:
         allow_headers=["*"],
     )
 
-@app.get("/", tags=["meta"], summary="Root", response_model=HealthResponse)
+# Accept GET and HEAD so Render health checks pass
+@app.api_route("/", methods=["GET", "HEAD"], tags=["meta"], summary="Root", response_model=HealthResponse)
 def root() -> HealthResponse:
     return HealthResponse(ok=True, service=SERVICE_NAME, version=SERVICE_VERSION)
 
@@ -100,6 +101,11 @@ def custom_openapi():
     )
     # Advertise the base URL so the GPT builder doesn't warn
     openapi_schema["servers"] = [{"url": BASE_URL}]
+    # Also model API key as a security scheme to keep linters happy (optional)
+    openapi_schema.setdefault("components", {}).setdefault("securitySchemes", {}).update({
+        "ApiKeyAuth": {"type": "apiKey", "in": "header", "name": "Authorization"}
+    })
+    openapi_schema["security"] = [{"ApiKeyAuth": []}]
     app.openapi_schema = openapi_schema
     return app.openapi_schema
 
