@@ -2,7 +2,7 @@ fastapi
 uvicorn[standard]
 pydantic>=2
 
-faiss-cpu==1.8.0.post1
+faiss-cpu==1.12.0
 numpy>=1.26
 pandas>=2.2
 pyarrow>=15
