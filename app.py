@@ -1,7 +1,10 @@
 import os
 from typing import List, Optional
+
 from fastapi import FastAPI, Header, HTTPException
+from fastapi.openapi.utils import get_openapi
 from pydantic import BaseModel, Field
+
 from rag.retrieve import search_chunks
 from rag.answer import synthesize
 
@@ -10,7 +13,8 @@ API_KEY = os.getenv("API_KEY", "dev")
 SERVICE_NAME = "Bache Talks RAG API"
 SERVICE_VERSION = "3.0-alpha"
 ALLOW_ORIGINS = os.getenv("CORS_ALLOW_ORIGINS")  # e.g. "*", or "https://your.site"
-#  CORS is off by default (server-to-server via Custom GPT Actions doesn’t need it)
+# Base URL used to populate the OpenAPI `servers` section (silences GPT builder warning)
+BASE_URL = os.getenv("BASE_URL", "https://bache-rag-api.onrender.com")
 
 # --- Models ---
 class Chunk(BaseModel):
@@ -62,7 +66,7 @@ def _check_auth(authorization: Optional[str]):
     if authorization != f"Bearer {API_KEY}":
         raise HTTPException(status_code=401, detail="Unauthorized")
 
-@app.get("/", tags=["meta"])
+@app.get("/", tags=["meta"], summary="Root")
 def root() -> dict:
     return {"ok": True, "service": SERVICE_NAME, "version": SERVICE_VERSION}
 
@@ -76,3 +80,18 @@ def search(req: SearchRequest, authorization: Optional[str] = Header(None)):
 def answer(req: AnswerRequest, authorization: Optional[str] = Header(None)):
     _check_auth(authorization)
     return synthesize(req.query, req.chunk_ids)
+
+# --- Custom OpenAPI with `servers` ---
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    openapi_schema = get_openapi(
+        title=SERVICE_NAME,
+        version=SERVICE_VERSION,
+        routes=app.routes,
+    )
+    openapi_schema["servers"] = [{"url": BASE_URL}]
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+app.openapi = custom_openapi
