@@ -4,7 +4,7 @@
 FastAPI backend providing citation-grounded semantic search and synthesis across the verified public-talk corpus of philosopher-mystic **Christopher M. Bache**.  
 Implements `/search` and `/answer` endpoints used by the Custom GPT **Bache Talks Librarian**.
 
-[![version](https://img.shields.io/badge/version-v3.1.0-blue)](https://bache-rag-api.onrender.com)  
+[![version](https://img.shields.io/badge/version-v1.1.0-blue)](https://bache-rag-api.onrender.com)  
 [API Docs](https://bache-rag-api.onrender.com/docs) · [OpenAPI JSON](https://bache-rag-api.onrender.com/openapi.json) · [Status](https://bache-rag-api.onrender.com/_rag_status)
 
 ---
@@ -135,7 +135,7 @@ GPT Instructions
 
 🧾 Version History
 
-v3.1.0 (2025-10-16) — Stable Render Deployment + Citation Schema Overhaul
+v1.1.0 (2025-10-16) — Stable Render Deployment + Citation Schema Overhaul
 	•	Removed git submodule dependency; bundled local vectors for free-tier Render builds
 	•	Rewrote app.py for self-contained imports and single auth scheme
 	•	Added robust /_debug and /_rag_status endpoints for diagnostics
@@ -143,7 +143,7 @@ v3.1.0 (2025-10-16) — Stable Render Deployment + Citation Schema Overhaul
 	•	Verified Render API ✅ (parquet_rows = 2561, faiss_ntotal = 2561)
 	•	Confirmed Custom GPT integration with working multi-talk summaries
 
-v3.0-alpha (2025-10-15) — First Live RAG Deployment
+v1.0-alpha (2025-10-15) — First Live RAG Deployment
 	•	63 talks → ≈ 2 800 vectors × 3 072 dims
 	•	Citation-grounded synthesis pipeline
 	•	Render deployment + Custom GPT integration (4.5 / 5 eval score)

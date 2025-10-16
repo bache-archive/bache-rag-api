@@ -5,7 +5,7 @@ FastAPI service providing semantic retrieval and citation-grounded synthesis
 over the public Chris Bache talk transcripts.
 
 Author: bache-archive
-Version: 3.1
+Version: 1.1.0
 License: MIT
 """
 
@@ -33,7 +33,7 @@ logger = logging.getLogger("bache-rag-api")
 # ---------------------------------------------------------------------
 API_KEY = os.getenv("API_KEY", "dev")
 SERVICE_NAME = "Bache Talks RAG API"
-SERVICE_VERSION = "3.1"
+SERVICE_VERSION = "1.1.0"
 BASE_URL = os.getenv("BASE_URL", "https://bache-rag-api.onrender.com")
 ALLOW_ORIGINS = os.getenv("CORS_ALLOW_ORIGINS")  # e.g. "*", or "https://your.site"
 
