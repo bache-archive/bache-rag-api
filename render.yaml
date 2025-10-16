@@ -3,9 +3,13 @@ services:
     name: bache-rag-api
     env: python
     buildCommand: |
+      # 1️⃣ Ensure all dependencies are installed
       pip install -r requirements.txt
-      # Always refresh the submodule to the latest main for metadata/code
+
+      # 2️⃣ Initialize or update the chris-bache-archive submodule
       git submodule update --init --recursive --remote
-      # Fetch vectors from GitHub Releases (pin via RELEASE_TAG or use latest)
-      ./scripts/fetch_vectors.sh
-    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+
+    startCommand: |
+      # 3️⃣ Always fetch the latest verified vector bundle on container start
+      #    (this guarantees the FAISS + Parquet files exist even on a fresh instance)
+      bash -lc "./scripts/fetch_vectors.sh && uvicorn app:app --host 0.0.0.0 --port $PORT"
