@@ -10,7 +10,6 @@ License: MIT
 """
 
 import os
-import sys
 import logging
 from typing import List, Optional, Dict, Any
 
@@ -19,16 +18,9 @@ from fastapi.openapi.utils import get_openapi
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel, Field
 
-# ---------------------------------------------------------------------
-# Make the submodule importable: vendor/chris-bache-archive
-# ---------------------------------------------------------------------
-VENDOR_PATH = os.path.join(os.path.dirname(__file__), "vendor", "chris-bache-archive")
-if VENDOR_PATH not in sys.path:
-    sys.path.insert(0, VENDOR_PATH)
-
-# Now import the canonical RAG engine from the submodule
-from rag.retrieve import Retriever  # type: ignore
-from rag.answer import answer_from_chunks  # type: ignore
+# Import the RAG engine from the local package (no submodule path hacks)
+from rag.retrieve import Retriever
+from rag.answer import answer_from_chunks
 
 # ---------------------------------------------------------------------
 # Logging
@@ -145,7 +137,7 @@ if ALLOW_ORIGINS:
         allow_headers=["*"],
     )
 
-# Singleton Retriever (submodule implementation)
+# Singleton Retriever
 _RETRIEVER = Retriever(
     parquet_path=METADATA_PATH,
     faiss_path=FAISS_INDEX_PATH,
@@ -166,7 +158,7 @@ def _row_to_chunk(row: Dict[str, Any]) -> Chunk:
         id=row.get("id"),
         talk_id=row.get("talk_id"),
         archival_title=row.get("archival_title"),
-        recorded_date=_normalize_date(row),   # put a value here for clients that read recorded_date
+        recorded_date=_normalize_date(row),   # set for clients expecting recorded_date
         published=row.get("published"),
         chunk_index=row.get("chunk_index"),
         text=row.get("text"),
