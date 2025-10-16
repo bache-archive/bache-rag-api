@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: bache-rag-api
+    env: python
+    buildCommand: |
+      pip install -r requirements.txt
+      # Always refresh the submodule to the latest main for metadata/code
+      git submodule update --init --recursive --remote
+      # Fetch vectors from GitHub Releases (pin via RELEASE_TAG or use latest)
+      ./scripts/fetch_vectors.sh
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
