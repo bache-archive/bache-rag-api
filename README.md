@@ -4,7 +4,7 @@
 FastAPI backend providing citation-grounded semantic search and synthesis across the verified public-talk corpus of philosopher-mystic **Christopher M. Bache**.  
 Implements `/search` and `/answer` endpoints used by the Custom GPT **Bache Talks Librarian**.
 
-[![version](https://img.shields.io/badge/version-v3.1-blue)](https://bache-rag-api.onrender.com)  
+[![version](https://img.shields.io/badge/version-v3.1.0-blue)](https://bache-rag-api.onrender.com)  
 [API Docs](https://bache-rag-api.onrender.com/docs) · [OpenAPI JSON](https://bache-rag-api.onrender.com/openapi.json) · [Status](https://bache-rag-api.onrender.com/_rag_status)
 
 ---
@@ -13,7 +13,10 @@ Implements `/search` and `/answer` endpoints used by the Custom GPT **Bache Talk
 
 This service transforms the [**Chris Bache Archive**](https://github.com/bache-archive/chris-bache-archive) from a static transcript collection into an **interactive, citable research engine**.
 
-Each of the 63 public talks (≈ 1 million characters) is pre-segmented into ≈ 2 800 paragraph-level chunks, embedded using **OpenAI `text-embedding-3-large` (3 072 dims)**, and indexed with **FAISS** for high-speed cosine search.
+Each of the 63 public talks (≈ 1 million characters) is pre-segmented into ≈ 2 800 paragraph-level chunks, embedded with **OpenAI `text-embedding-3-large` (3 072 dims)**, and indexed in-memory with **FAISS** for high-speed cosine search.
+
+**Index statistics:** `parquet_rows = 2561`, `faiss_ntotal = 2561`  
+**Citation format:** `(YYYY-MM-DD, Archival Title, chunk N)`
 
 The API returns **verifiable excerpts** with stable metadata:
 
@@ -43,39 +46,26 @@ curl -X POST https://bache-rag-api.onrender.com/search \
 
 🧩 Architecture
 
-app.py                         → FastAPI app entry point
-rag/retrieve.py                → FAISS + Parquet retrieval layer
-rag/answer.py                  → Deterministic synthesis with inline citations
-vendor/chris-bache-archive/    → Submodule (source corpus + vectors + tools)
-reports/                       → Evaluation logs
-requirements.txt               → Python dependencies
+app.py          → FastAPI app entry point
+rag/retrieve.py → FAISS + Parquet retrieval layer
+rag/answer.py   → Deterministic synthesis with inline citations
+vectors/        → Local FAISS + Parquet index (copied from archive)
+reports/        → Evaluation logs
+requirements.txt→ Python dependencies
 
 Tech Stack
 	•	FastAPI – lightweight Python web framework
 	•	FAISS – vector similarity search
 	•	OpenAI text-embedding-3-large – 3 072-dim semantic vectors
 	•	Parquet + SHA-256 – verifiable archival metadata
-	•	Git Submodules – links canonical data from chris-bache-archive
 
 ⸻
 
-🪶 Linked Submodule
+🪶 Data Source
 
-This repo embeds the full archive as a Git submodule:
-
-vendor/chris-bache-archive → https://github.com/bache-archive/chris-bache-archive
-
-To clone and initialize everything:
-
-git clone --recurse-submodules https://github.com/bache-archive/bache-rag-api.git
-cd bache-rag-api
-
-To pull the latest archive updates:
-
-git submodule update --remote --merge vendor/chris-bache-archive
-git commit -am "Update chris-bache-archive submodule to latest"
-git push
-
+Vectors and metadata were built from the canonical
+chris-bache-archive repository (v2.6-dev, Oct 2025).
+They are bundled locally in vectors/ for deterministic builds on Render.
 
 ⸻
 
@@ -97,6 +87,11 @@ curl -s -X POST http://localhost:8000/search \
   -H "Content-Type: application/json" \
   -d '{"query":"Diamond Luminosity"}' | jq
 
+Quick status check (from any shell):
+
+curl -sS https://bache-rag-api.onrender.com/_debug | jq
+curl -sS https://bache-rag-api.onrender.com/_rag_status | jq
+
 
 ⸻
 
@@ -110,13 +105,13 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
 
-Environment variables
+Environment Variables
 
 Name	Example	Description
 API_KEY	your_generated_key	Auth for /search and /answer
-OPENAI_API_KEY	sk-...	Used for embedding & synthesis
-FAISS_INDEX_PATH	vendor/chris-bache-archive/vectors/bache-talks.index.faiss	Path inside submodule
-METADATA_PATH	vendor/chris-bache-archive/vectors/bache-talks.embeddings.parquet	Metadata file
+OPENAI_API_KEY	sk-…	Used for embedding & synthesis
+FAISS_INDEX_PATH	vectors/bache-talks.index.faiss	Local FAISS index
+METADATA_PATH	vectors/bache-talks.embeddings.parquet	Local Parquet metadata
 EMBED_MODEL	text-embedding-3-large	Embedding model name
 EMBED_DIM	3072	Embedding dimensionality
 MAX_PER_TALK	2	Limit of chunks per talk
@@ -130,22 +125,23 @@ Name: Bache Talks Librarian
 Schema: https://bache-rag-api.onrender.com/openapi.json
 Auth: Authorization: Bearer <API_KEY>
 
-GPT Instructions:
-	•	Call /search (top_k = 8) → compose a 2–6 sentence summary.
-	•	Use citations in format (YYYY-MM-DD, Title, chunk N).
-	•	Never answer from priors; ground answers in retrieved context.
-	•	If no matches, suggest query refinements.
+GPT Instructions
+	•	Call /search (top_k = 8) → compose a 2–6 sentence summary
+	•	Use citations in format (YYYY-MM-DD, Title, chunk N)
+	•	Never answer from priors; ground answers in retrieved context
+	•	If no matches, suggest query refinements
 
 ⸻
 
 🧾 Version History
 
-v3.1 (2025-10-16) — Archive Submodule Integration + Metadata Enhancements
-	•	Integrated chris-bache-archive as Git submodule → no more manual file copying
-	•	Added URL and venue fields to Parquet metadata
-	•	Rebuilt embeddings + FAISS index (clean counts 2561 × 3072)
-	•	Verified retriever smoke test ✅
-	•	README and CHANGELOG synchronized across repos
+v3.1.0 (2025-10-16) — Stable Render Deployment + Citation Schema Overhaul
+	•	Removed git submodule dependency; bundled local vectors for free-tier Render builds
+	•	Rewrote app.py for self-contained imports and single auth scheme
+	•	Added robust /_debug and /_rag_status endpoints for diagnostics
+	•	Introduced human-readable citation format (YYYY-MM-DD, Title, chunk N)
+	•	Verified Render API ✅ (parquet_rows = 2561, faiss_ntotal = 2561)
+	•	Confirmed Custom GPT integration with working multi-talk summaries
 
 v3.0-alpha (2025-10-15) — First Live RAG Deployment
 	•	63 talks → ≈ 2 800 vectors × 3 072 dims
