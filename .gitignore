@@ -52,3 +52,6 @@ build/
 # --- OS & miscellaneous ---
 Thumbs.db
 Desktop.ini
+bache-rag-api.git/
+vectors/
+__pycache__/
