@@ -1,0 +1,7 @@
+#!/bin/bash
+author_name=$(git config user.name)
+author_email=$(git config user.email)
+if [[ "$author_name" != "Bache Archive" || "$author_email" != "bache-archive@tuta.com" ]]; then
+  echo "❌ Wrong Git identity. Use: Bache Archive <bache-archive@tuta.com>"
+  exit 1
+fi
