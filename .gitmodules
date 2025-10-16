@@ -1,4 +1,0 @@
-[submodule "vendor/chris-bache-archive"]
-	path = vendor/chris-bache-archive
-	url = https://github.com/bache-archive/chris-bache-archive.git
-	branch = main
