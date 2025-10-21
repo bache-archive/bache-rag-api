@@ -1,145 +1,146 @@
 #!/usr/bin/env python3
-from typing import List, Dict, Tuple, Optional
-import math
+"""
+rag/answer.py
 
-# -------- tiny utils --------
+Render a short, citation-grounded synthesis without exposing internal "chunk" ids.
+- Inline cites: "(YYYY-MM-DD, Title[, [hh:mm:ss–hh:mm:ss](...link...)])"
+- Sources: bullet list, timestamped links when available; never show "chunk N".
+"""
+
+from __future__ import annotations
+from typing import Dict, List, Tuple, Optional
+
+# ---------- helpers ----------
+
+def _safe_str(v) -> str:
+    return "" if v is None else str(v)
 
 def _trim(s: str, limit: int = 500) -> str:
-    s = (s or "").strip().replace("\n", " ")
+    s = (s or "").strip()
     if len(s) <= limit:
         return s
-    cut = s[:limit]
-    if " " in cut:
-        cut = cut.rsplit(" ", 1)[0]
-    return cut.rstrip(" ,;—") + "…"
+    cut = s[:limit].rsplit(" ", 1)[0]
+    return (cut or s[:limit]) + "…"
 
-def _is_nan(x) -> bool:
-    try:
-        return isinstance(x, float) and math.isnan(x)
-    except Exception:
-        return False
+def _human_date(row: Dict) -> str:
+    # prefer published → date → recorded_date (already normalized upstream)
+    for k in ("published", "date", "recorded_date"):
+        val = row.get(k)
+        if val:
+            return str(val)
+    return ""
 
-def _fmt_hhmmss_from_sec(sec: Optional[float]) -> str:
-    if sec is None or _is_nan(sec):
-        return ""
-    sec = int(max(0, round(float(sec))))
-    h = sec // 3600
-    m = (sec % 3600) // 60
-    s = sec % 60
-    return f"{h:02d}:{m:02d}:{s:02d}"
-
-def _yt_url(youtube_id: Optional[str], start_sec: Optional[float]) -> str:
-    if not youtube_id:
-        return ""
-    t = 0 if (start_sec is None or _is_nan(start_sec)) else int(max(0, round(float(start_sec))))
-    return f"https://youtu.be/{youtube_id}?t={t}"
-
-def _pick_date(row: Dict) -> str:
-    # prefer recorded_date → published
-    return (row.get("recorded_date") or row.get("published") or "").strip()
-
-def _pick_title(row: Dict) -> str:
-    return (row.get("archival_title") or row.get("title") or row.get("talk_id") or "").strip()
-
-def _format_timecoded_citation(row: Dict) -> str:
+def _ts_url(row: Dict) -> Optional[str]:
     """
-    Produce:
-      (YYYY-MM-DD, Title, [HH:MM:SS–HH:MM:SS](https://youtu.be/<id>?t=<start>) [chunk N])
-    Fallbacks cleanly if timing/url are missing.
+    Prefer precomputed ts_url if present; else compute if we have youtube_id & start_sec;
+    else fall back to plain url; else None.
     """
-    date  = _pick_date(row)
-    title = _pick_title(row)
-    idx   = int(row.get("chunk_index", 0))
+    if row.get("ts_url"):
+        return row["ts_url"]
+    yt = row.get("youtube_id")
+    ss = row.get("start_sec")
+    if yt and ss is not None:
+        try:
+            t = int(max(0, float(ss)))
+            return f"https://youtu.be/{yt}?t={t}"
+        except Exception:
+            return None
+    return row.get("url") or None
 
-    yt_id   = (row.get("youtube_id") or "").strip()
-    s_sec   = row.get("start_sec")
-    e_sec   = row.get("end_sec")
-    s_hms   = (row.get("start_hhmmss") or "").strip() or _fmt_hhmmss_from_sec(s_sec)
-    e_hms   = (row.get("end_hhmmss") or "").strip()   or _fmt_hhmmss_from_sec(e_sec)
+def _ts_bracket(row: Dict) -> str:
+    """
+    Return markdown like: [00:54:17–00:54:44](https://youtu.be/ID?t=3257)
+    If we only have a start time, show just [00:54:17](...).
+    If no timing/link, return "".
+    """
+    start = row.get("start_hhmmss")
+    end = row.get("end_hhmmss")
+    link = _ts_url(row)
+    if not start or not link:
+        return ""
+    label = start if not end else f"{start}–{end}"
+    return f"[{label}]({link})"
 
-    # If we have a YouTube id and a start time (sec or hh:mm:ss), make it clickable
-    if yt_id and (s_sec is not None and not _is_nan(s_sec) or s_hms):
-        url = _yt_url(yt_id, s_sec)
-        # If we lack end time, show only start
-        if e_hms:
-            label = f"{s_hms}–{e_hms}" if s_hms else e_hms
-        else:
-            label = s_hms or _fmt_hhmmss_from_sec(s_sec)
-        time_md = f"[{label}]({url})"
-        return f"({date}, {title}, {time_md} [chunk {idx}])"
+def _human_title(row: Dict) -> str:
+    # Prefer archival_title, then citation, then talk_id
+    return _safe_str(row.get("archival_title") or row.get("citation") or row.get("talk_id"))
 
-    # No timing → fallback to original citation shape
-    return f"({date}, {title}, [chunk {idx}])"
+def _human_label(row: Dict, include_ts: bool = True) -> str:
+    """
+    "YYYY-MM-DD, Title" plus optional timestamp bracket.
+    NEVER includes 'chunk'.
+    """
+    date = _human_date(row)
+    title = _human_title(row)
+    base = ", ".join([p for p in (date, title) if p])
+    if include_ts:
+        ts = _ts_bracket(row)
+        return f"{base}, {ts}" if ts else base
+    return base
 
 def _inline_cite(row: Dict) -> str:
     """
-    Prefer the timecoded citation. If nothing available, fall back to (date, title, chunk N).
+    Human-friendly inline cite with NO chunk number.
+    Examples:
+      "(2023-01-06, LSD and the Mind of the Universe – S2S Podcast, [00:54:17–00:54:44](...))"
+      "(2022-08-30, Psychedelics and Cosmological Exploration with Chris Bache – Reach Truth Podcast)"
     """
-    return _format_timecoded_citation(row)
+    return f"({_human_label(row, include_ts=True)})"
 
-# -------- Sources block formatting --------
-
-def _source_line(row: Dict) -> str:
+def _dedupe_sources(hits: List[Dict]) -> List[Dict]:
     """
-    Render one source line with chunk index and a direct timecoded URL when possible.
-    Example:
-      — 2019-11-13, LSD & the Mind..., chunk 12 · https://youtu.be/<id>?t=903
+    De-duplicate sources while preserving order.
+    Key by (talk_id, start_hhmmss or url or archival_title) as a human-facing proxy.
     """
-    date  = _pick_date(row)
-    title = _pick_title(row)
-    idx   = int(row.get("chunk_index", 0))
-
-    yt_id = (row.get("youtube_id") or "").strip()
-    s_sec = row.get("start_sec")
-    # Either use stored URL (if provided) or synthesize a YouTube link with ?t=
-    url = (row.get("url") or "").strip()
-    if not url and yt_id and s_sec is not None and not _is_nan(s_sec):
-        url = _yt_url(yt_id, s_sec)
-
-    base = f"— {date}, {title} · chunk {idx}"
-    if url:
-        base += f" · {url}"
-    return base
-
-def format_sources(hits: List[Dict], max_sources: int = 6) -> str:
-    """
-    De-duplicate by (talk_id, chunk_index), preserve order, and include a timecoded URL if available.
-    """
-    seen = set()
-    lines: List[str] = []
+    seen: set[Tuple[str, str]] = set()
+    out: List[Dict] = []
     for h in hits:
-        key = (h.get("talk_id"), int(h.get("chunk_index", 0)))
+        talk = _safe_str(h.get("talk_id"))
+        key2 = _safe_str(h.get("start_hhmmss") or h.get("url") or h.get("archival_title") or "")
+        key = (talk, key2)
         if key in seen:
             continue
         seen.add(key)
-        lines.append(_source_line(h))
-        if len(lines) >= max_sources:
-            break
-    return "\n".join(lines)
+        out.append(h)
+    return out
 
-# -------- main composer --------
+def format_sources(hits: List[Dict], limit: int = 6) -> str:
+    """
+    Render a bullet list of sources with optional timestamped link.
+    NO chunk numbers.
+    """
+    items: List[str] = []
+    for h in _dedupe_sources(hits)[:limit]:
+        date = _human_date(h)
+        title = _human_title(h)
+        ts = _ts_bracket(h)
+        url = _ts_url(h) or ""
+        if ts:
+            items.append(f"— {date}, {title} · {ts}")
+        else:
+            items.append(f"— {date}, {title}" + (f" · {url}" if url else ""))
+    return "\n".join(items)
+
+# ---------- main entry ----------
 
 def answer_from_chunks(query: str, hits: List[Dict], max_snippets: int = 3) -> str:
     """
-    Ultra-simple extractive composer:
-      - picks up to `max_snippets` strongest chunks
-      - returns a concise synthesis with an appended Sources block
-      - uses *timecoded*, human-friendly citations when possible
+    Compose a short QA response using the top hits:
+      - includes inline timestamped brackets where available
+      - uses human-readable citations (no chunk numbers)
     """
     if not hits:
         return "I don’t have sufficient context to answer. Try adding a date, venue, or specific term."
 
-    # Take top N chunks as supporting snippets
     top = hits[:max_snippets]
     snippets: List[str] = []
     for h in top:
         txt = _trim(h.get("text", ""), limit=500)
-        snippets.append(f"{txt} {_inline_cite(h)}")
+        cite = _inline_cite(h)  # includes timestamp bracket when available
+        snippets.append(f"{txt} {cite}")
 
     synthesis = "Based on the archived talks, here are the most relevant passages:"
     body = " ".join(snippets)
-
-    # Sources block (de-duplicated, with direct timecoded links when available)
     sources_block = format_sources(hits)
 
     return f"{synthesis} {body}\n\nSources:\n{sources_block}"

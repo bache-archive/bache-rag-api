@@ -18,15 +18,18 @@ from fastapi.openapi.utils import get_openapi
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel, Field
 
-# Import the RAG engine from the local package
-from rag.retrieve import Retriever
-from rag.answer import answer_from_chunks
-
 # ---------------------------------------------------------------------
 # Logging
 # ---------------------------------------------------------------------
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("bache-rag-api")
+
+# Import the RAG engine from the local package
+from rag.retrieve import Retriever
+from rag.answer import answer_from_chunks
+# --- Debug: confirm which rag.answer is loaded ---
+import rag.answer as _answer_mod
+logger.info("Using rag.answer from: %s", getattr(_answer_mod, "__file__", "<unknown>"))
 
 # ---------------------------------------------------------------------
 # Settings
