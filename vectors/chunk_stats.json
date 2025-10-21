@@ -1,0 +1,574 @@
+{
+  "generated_at": "2025-10-21T18:01:09.681125+00:00",
+  "total_chunks": 2762,
+  "char_len_mean": 935.46,
+  "char_len_min": 114,
+  "char_len_max": 2832,
+  "token_est_mean": 233.5,
+  "token_est_min": 28,
+  "token_est_max": 708,
+  "per_talk": {
+    "2014-11-10-chris-bache-waking-up-in-the-classroom-lessons-from-30-years-of-teaching": {
+      "chunks": 67,
+      "char_len_mean": 926.39,
+      "char_len_min": 429,
+      "char_len_max": 1557,
+      "token_est_mean": 231.21,
+      "token_est_min": 107,
+      "token_est_max": 389
+    },
+    "2015-03-16-exploring-the-boundaries-of-death-and-rebirth-in-lsd-psychotherapy": {
+      "chunks": 28,
+      "char_len_mean": 841.57,
+      "char_len_min": 442,
+      "char_len_max": 1254,
+      "token_est_mean": 210,
+      "token_est_min": 110,
+      "token_est_max": 313
+    },
+    "2018-07-05-diamonds-from-heaven-interview-with-iain-mcnay": {
+      "chunks": 40,
+      "char_len_mean": 950.27,
+      "char_len_min": 196,
+      "char_len_max": 1932,
+      "token_est_mean": 237.18,
+      "token_est_min": 49,
+      "token_est_max": 483
+    },
+    "2018-08-30-scientific-evidence-for-reincarnation-timewaver-summer-world-2018": {
+      "chunks": 25,
+      "char_len_mean": 894.64,
+      "char_len_min": 517,
+      "char_len_max": 1219,
+      "token_est_mean": 223.36,
+      "token_est_min": 129,
+      "token_est_max": 304
+    },
+    "2018-08-30-diamonds-from-heaven-lecture-at-timewaver-summer-world-2018": {
+      "chunks": 33,
+      "char_len_mean": 936.55,
+      "char_len_min": 360,
+      "char_len_max": 1667,
+      "token_est_mean": 233.79,
+      "token_est_min": 90,
+      "token_est_max": 416
+    },
+    "2018-10-12-mapping-consciousness-with-high-dose-lsd-attmind-83": {
+      "chunks": 65,
+      "char_len_mean": 875.69,
+      "char_len_min": 371,
+      "char_len_max": 1249,
+      "token_est_mean": 218.58,
+      "token_est_min": 92,
+      "token_est_max": 312
+    },
+    "2019-05-15-michael-pollan-and-chris-bache-buddha-at-the-gas-pump-interview": {
+      "chunks": 100,
+      "char_len_mean": 936.08,
+      "char_len_min": 372,
+      "char_len_max": 1769,
+      "token_est_mean": 233.7,
+      "token_est_min": 93,
+      "token_est_max": 442
+    },
+    "2019-08-30-scientific-evidence-for-reincarnation": {
+      "chunks": 22,
+      "char_len_mean": 901.23,
+      "char_len_min": 543,
+      "char_len_max": 1224,
+      "token_est_mean": 224.95,
+      "token_est_min": 135,
+      "token_est_max": 306
+    },
+    "2019-09-26-mapping-of-transcendence": {
+      "chunks": 35,
+      "char_len_mean": 1001.4,
+      "char_len_min": 533,
+      "char_len_max": 1717,
+      "token_est_mean": 249.91,
+      "token_est_min": 133,
+      "token_est_max": 429
+    },
+    "2019-11-13-lsd-and-the-mind-of-the-universe-diamonds-from-heaven": {
+      "chunks": 53,
+      "char_len_mean": 996.58,
+      "char_len_min": 425,
+      "char_len_max": 2097,
+      "token_est_mean": 248.77,
+      "token_est_min": 106,
+      "token_est_max": 524
+    },
+    "2020-01-07-lsd-and-the-mind-of-the-universe-diamonds-from-heaven": {
+      "chunks": 54,
+      "char_len_mean": 952.31,
+      "char_len_min": 207,
+      "char_len_max": 1475,
+      "token_est_mean": 237.65,
+      "token_est_min": 51,
+      "token_est_max": 368
+    },
+    "2020-01-10-prof-dr-christopher-bache-about-his-work-and-consciousness": {
+      "chunks": 9,
+      "char_len_mean": 1141.78,
+      "char_len_min": 387,
+      "char_len_max": 1515,
+      "token_est_mean": 285,
+      "token_est_min": 96,
+      "token_est_max": 378
+    },
+    "2020-04-19-bicycle-day-conversation-with-jef-baker": {
+      "chunks": 58,
+      "char_len_mean": 1020.79,
+      "char_len_min": 314,
+      "char_len_max": 2832,
+      "token_est_mean": 254.81,
+      "token_est_min": 78,
+      "token_est_max": 708
+    },
+    "2020-05-13-ep6-chris-bache-lsd-and-the-mind-of-the-universe": {
+      "chunks": 65,
+      "char_len_mean": 893.94,
+      "char_len_min": 365,
+      "char_len_max": 1293,
+      "token_est_mean": 223.15,
+      "token_est_min": 91,
+      "token_est_max": 323
+    },
+    "2020-10-04-a-visionary-experience-of-the-birth-of-the-future-human": {
+      "chunks": 36,
+      "char_len_mean": 1088.83,
+      "char_len_min": 450,
+      "char_len_max": 1742,
+      "token_est_mean": 271.89,
+      "token_est_min": 112,
+      "token_est_max": 435
+    },
+    "2020-12-21-great-conjunction-reflection-short": {
+      "chunks": 10,
+      "char_len_mean": 962.6,
+      "char_len_min": 510,
+      "char_len_max": 1417,
+      "token_est_mean": 240.4,
+      "token_est_min": 127,
+      "token_est_max": 354
+    },
+    "2021-03-16-contemplating-reincarnation-part-2": {
+      "chunks": 37,
+      "char_len_mean": 904.14,
+      "char_len_min": 575,
+      "char_len_max": 1524,
+      "token_est_mean": 225.7,
+      "token_est_min": 143,
+      "token_est_max": 381
+    },
+    "2021-03-16-contemplating-reincarnation-part-3": {
+      "chunks": 37,
+      "char_len_mean": 1016.03,
+      "char_len_min": 350,
+      "char_len_max": 1860,
+      "token_est_mean": 253.65,
+      "token_est_min": 87,
+      "token_est_max": 465
+    },
+    "2021-03-29-chris-bache-lsd-and-the-mind-of-the-universe-spmc-2019": {
+      "chunks": 36,
+      "char_len_mean": 1025.83,
+      "char_len_min": 375,
+      "char_len_max": 2064,
+      "token_est_mean": 256.06,
+      "token_est_min": 93,
+      "token_est_max": 516
+    },
+    "2021-04-01-contemplating-reincarnation-part-1": {
+      "chunks": 49,
+      "char_len_mean": 911.55,
+      "char_len_min": 203,
+      "char_len_max": 1908,
+      "token_est_mean": 227.57,
+      "token_est_min": 50,
+      "token_est_max": 477
+    },
+    "2021-04-02-reincarnation-qanda-live-with-richard-rudd": {
+      "chunks": 57,
+      "char_len_mean": 864.25,
+      "char_len_min": 389,
+      "char_len_max": 1474,
+      "token_est_mean": 215.74,
+      "token_est_min": 97,
+      "token_est_max": 368
+    },
+    "2021-04-21-global-collapse-spirituality-and-the-birth-of-the-future-human-attmind-142": {
+      "chunks": 55,
+      "char_len_mean": 944.05,
+      "char_len_min": 530,
+      "char_len_max": 1194,
+      "token_est_mean": 235.71,
+      "token_est_min": 132,
+      "token_est_max": 298
+    },
+    "2021-05-03-lsd-and-the-mind-of-the-universe-interview-with-stephen-gray": {
+      "chunks": 41,
+      "char_len_mean": 907.49,
+      "char_len_min": 490,
+      "char_len_max": 1203,
+      "token_est_mean": 226.39,
+      "token_est_min": 122,
+      "token_est_max": 300
+    },
+    "2021-06-03-lsd-and-the-mind-of-the-universe-christopher-bache-ph.d": {
+      "chunks": 57,
+      "char_len_mean": 906.23,
+      "char_len_min": 418,
+      "char_len_max": 1248,
+      "token_est_mean": 226.25,
+      "token_est_min": 104,
+      "token_est_max": 312
+    },
+    "2021-07-08-mind-blowing-lsd-secrets-revealed-rebel-spirit-radio": {
+      "chunks": 47,
+      "char_len_mean": 912.66,
+      "char_len_min": 458,
+      "char_len_max": 1213,
+      "token_est_mean": 227.72,
+      "token_est_min": 114,
+      "token_est_max": 303
+    },
+    "2022-01-20-evolution-of-collective-consciousness-deep-transformation-podcast-part-1": {
+      "chunks": 96,
+      "char_len_mean": 928.76,
+      "char_len_min": 471,
+      "char_len_max": 1329,
+      "token_est_mean": 231.82,
+      "token_est_min": 117,
+      "token_est_max": 332
+    },
+    "2022-02-16-dr.-chris-bache-on-understanding-dmt-entity-encounters": {
+      "chunks": 5,
+      "char_len_mean": 993.8,
+      "char_len_min": 729,
+      "char_len_max": 1096,
+      "token_est_mean": 248.4,
+      "token_est_min": 182,
+      "token_est_max": 274
+    },
+    "2022-02-17-exploring-lsd-as-a-practice-edge-of-mind-podcast-part-1": {
+      "chunks": 104,
+      "char_len_mean": 926.4,
+      "char_len_min": 288,
+      "char_len_max": 1456,
+      "token_est_mean": 231.26,
+      "token_est_min": 72,
+      "token_est_max": 364
+    },
+    "2022-02-17-what-it-s-like-meeting-god-on-psychedelics-feat.-christopher-bache": {
+      "chunks": 4,
+      "char_len_mean": 971.75,
+      "char_len_min": 616,
+      "char_len_max": 1194,
+      "token_est_mean": 242.5,
+      "token_est_min": 154,
+      "token_est_max": 298
+    },
+    "2022-02-19-the-mind-of-the-universe-conversation-with-prof-chris-bache": {
+      "chunks": 48,
+      "char_len_mean": 893.31,
+      "char_len_min": 399,
+      "char_len_max": 1300,
+      "token_est_mean": 222.92,
+      "token_est_min": 99,
+      "token_est_max": 325
+    },
+    "2022-04-26-when-we-die-ions-living-classroom-excerpt": {
+      "chunks": 4,
+      "char_len_mean": 789,
+      "char_len_min": 362,
+      "char_len_max": 1108,
+      "token_est_mean": 196.75,
+      "token_est_min": 90,
+      "token_est_max": 277
+    },
+    "2022-06-03-part-ii-of-his-remarkable-twenty-year-journey-into-the-world-of-psychedelics-edge-of-mind-podcast-part-2": {
+      "chunks": 91,
+      "char_len_mean": 940.9,
+      "char_len_min": 305,
+      "char_len_max": 1722,
+      "token_est_mean": 234.82,
+      "token_est_min": 76,
+      "token_est_max": 430
+    },
+    "2022-08-30-psychedelics-and-cosmological-exploration-with-chris-bache-reach-truth-podcast": {
+      "chunks": 88,
+      "char_len_mean": 934.11,
+      "char_len_min": 290,
+      "char_len_max": 1722,
+      "token_est_mean": 233.15,
+      "token_est_min": 72,
+      "token_est_max": 430
+    },
+    "2022-12-07-lsd-and-the-mind-of-the-universe-smn-webinar": {
+      "chunks": 47,
+      "char_len_mean": 1003.85,
+      "char_len_min": 478,
+      "char_len_max": 1611,
+      "token_est_mean": 250.6,
+      "token_est_min": 119,
+      "token_est_max": 402
+    },
+    "2023-01-05-exploring-lsd-and-the-mind-of-the-universe": {
+      "chunks": 73,
+      "char_len_mean": 942.3,
+      "char_len_min": 569,
+      "char_len_max": 1448,
+      "token_est_mean": 235.19,
+      "token_est_min": 142,
+      "token_est_max": 362
+    },
+    "2023-01-06-lsd-and-the-mind-of-the-universe-s2s-podcast": {
+      "chunks": 87,
+      "char_len_mean": 902.29,
+      "char_len_min": 428,
+      "char_len_max": 1279,
+      "token_est_mean": 225.21,
+      "token_est_min": 107,
+      "token_est_max": 319
+    },
+    "2023-01-27-the-mind-of-the-universe-diamonds-from-heaven": {
+      "chunks": 65,
+      "char_len_mean": 925.98,
+      "char_len_min": 485,
+      "char_len_max": 1472,
+      "token_est_mean": 231.09,
+      "token_est_min": 121,
+      "token_est_max": 368
+    },
+    "2023-01-30-wisdom-keepers-conversation-with-duane-elgin": {
+      "chunks": 89,
+      "char_len_mean": 899.99,
+      "char_len_min": 446,
+      "char_len_max": 1369,
+      "token_est_mean": 224.65,
+      "token_est_min": 111,
+      "token_est_max": 342
+    },
+    "2023-02-01-children-who-remember-past-lives-chris-bache": {
+      "chunks": 1,
+      "char_len_mean": 1044,
+      "char_len_min": 1044,
+      "char_len_max": 1044,
+      "token_est_mean": 261,
+      "token_est_min": 261,
+      "token_est_max": 261
+    },
+    "2023-03-16-what-does-it-mean-to-be-a-good-person-psychedelically-chris-bache-phd": {
+      "chunks": 8,
+      "char_len_mean": 826.62,
+      "char_len_min": 577,
+      "char_len_max": 1105,
+      "token_est_mean": 206.38,
+      "token_est_min": 144,
+      "token_est_max": 276
+    },
+    "2023-03-16-collective-shadow-work-and-turning-toward-our-pain": {
+      "chunks": 7,
+      "char_len_mean": 902.86,
+      "char_len_min": 348,
+      "char_len_max": 1280,
+      "token_est_mean": 225.43,
+      "token_est_min": 87,
+      "token_est_max": 320
+    },
+    "2023-04-18-prof-chris-bache-cycles-of-death-and-rebirth": {
+      "chunks": 2,
+      "char_len_mean": 844.5,
+      "char_len_min": 775,
+      "char_len_max": 914,
+      "token_est_mean": 210.5,
+      "token_est_min": 193,
+      "token_est_max": 228
+    },
+    "2023-06-30-learning-to-be-gods": {
+      "chunks": 46,
+      "char_len_mean": 918.52,
+      "char_len_min": 274,
+      "char_len_max": 1662,
+      "token_est_mean": 229.28,
+      "token_est_min": 68,
+      "token_est_max": 415
+    },
+    "2023-07-12-diamonds-from-heaven-exploring-the-mind-of-the-universe": {
+      "chunks": 12,
+      "char_len_mean": 965.42,
+      "char_len_min": 581,
+      "char_len_max": 1194,
+      "token_est_mean": 241.08,
+      "token_est_min": 145,
+      "token_est_max": 298
+    },
+    "2023-08-17-lsd-and-the-mind-of-the-universe-what-is-going-om": {
+      "chunks": 38,
+      "char_len_mean": 987.34,
+      "char_len_min": 530,
+      "char_len_max": 1355,
+      "token_est_mean": 246.42,
+      "token_est_min": 132,
+      "token_est_max": 338
+    },
+    "2023-10-10-experience-of-the-human-being-of-the-future-short": {
+      "chunks": 1,
+      "char_len_mean": 1052,
+      "char_len_min": 1052,
+      "char_len_max": 1052,
+      "token_est_mean": 263,
+      "token_est_min": 263,
+      "token_est_max": 263
+    },
+    "2023-10-29-ego-to-oneness-confronting-the-climate-crisis-ep-278": {
+      "chunks": 43,
+      "char_len_mean": 907.37,
+      "char_len_min": 508,
+      "char_len_max": 1673,
+      "token_est_mean": 226.44,
+      "token_est_min": 127,
+      "token_est_max": 418
+    },
+    "2023-11-05-diamonds-from-heaven-the-mind-of-the-universe-chris-bache": {
+      "chunks": 33,
+      "char_len_mean": 914.03,
+      "char_len_min": 406,
+      "char_len_max": 1288,
+      "token_est_mean": 228.15,
+      "token_est_min": 101,
+      "token_est_max": 322
+    },
+    "2023-11-06-73-trips-inside-the-psychedelic-universe": {
+      "chunks": 32,
+      "char_len_mean": 957.75,
+      "char_len_min": 364,
+      "char_len_max": 1916,
+      "token_est_mean": 239.12,
+      "token_est_min": 91,
+      "token_est_max": 479
+    },
+    "2023-12-05-what-73-high-dose-lsd-sessions-taught-christopher-bache": {
+      "chunks": 65,
+      "char_len_mean": 884.78,
+      "char_len_min": 371,
+      "char_len_max": 1342,
+      "token_est_mean": 220.78,
+      "token_est_min": 92,
+      "token_est_max": 335
+    },
+    "2024-02-10-lsd-and-the-mind-of-the-universe-diamonds-from-heaven-sdi-meeting": {
+      "chunks": 59,
+      "char_len_mean": 927.69,
+      "char_len_min": 411,
+      "char_len_max": 1696,
+      "token_est_mean": 231.56,
+      "token_est_min": 102,
+      "token_est_max": 424
+    },
+    "2024-06-30-lsd-and-the-mind-of-the-universe-full-interview-in-reality": {
+      "chunks": 12,
+      "char_len_mean": 1075.42,
+      "char_len_min": 594,
+      "char_len_max": 1499,
+      "token_est_mean": 268.42,
+      "token_est_min": 148,
+      "token_est_max": 374
+    },
+    "2024-09-24-philosophical-implications-of-non-ordinary-states-live": {
+      "chunks": 54,
+      "char_len_mean": 903.09,
+      "char_len_min": 390,
+      "char_len_max": 1517,
+      "token_est_mean": 225.43,
+      "token_est_min": 97,
+      "token_est_max": 379
+    },
+    "2024-09-24-what-73-high-dose-lsd-sessions-taught-christopher-bache-phd-about-the-nature-of-reality-rebroadcast": {
+      "chunks": 61,
+      "char_len_mean": 948.18,
+      "char_len_min": 302,
+      "char_len_max": 1798,
+      "token_est_mean": 236.66,
+      "token_est_min": 75,
+      "token_est_max": 449
+    },
+    "2024-11-07-reincarnation-and-the-web-of-life-what-is-going-om": {
+      "chunks": 33,
+      "char_len_mean": 952.3,
+      "char_len_min": 272,
+      "char_len_max": 1508,
+      "token_est_mean": 237.7,
+      "token_est_min": 68,
+      "token_est_max": 377
+    },
+    "2024-11-16-the-evidence-for-reincarnation": {
+      "chunks": 53,
+      "char_len_mean": 963.81,
+      "char_len_min": 114,
+      "char_len_max": 1668,
+      "token_est_mean": 240.55,
+      "token_est_min": 28,
+      "token_est_max": 417
+    },
+    "2025-01-08-the-phoenix-always-rises-evolving-into-the-future-human": {
+      "chunks": 61,
+      "char_len_mean": 974.36,
+      "char_len_min": 257,
+      "char_len_max": 2563,
+      "token_est_mean": 243.21,
+      "token_est_min": 64,
+      "token_est_max": 640
+    },
+    "2025-03-18-psychedelics-and-the-cosmic-mind": {
+      "chunks": 64,
+      "char_len_mean": 954.34,
+      "char_len_min": 157,
+      "char_len_max": 2155,
+      "token_est_mean": 238.2,
+      "token_est_min": 39,
+      "token_est_max": 538
+    },
+    "2025-03-30-lsd-sessions-the-infinite-reality-of-the-divine": {
+      "chunks": 2,
+      "char_len_mean": 902,
+      "char_len_min": 711,
+      "char_len_max": 1093,
+      "token_est_mean": 225,
+      "token_est_min": 177,
+      "token_est_max": 273
+    },
+    "2025-04-26-bicycle-day-psychedelic-talk-recorded-2025-04-19": {
+      "chunks": 34,
+      "char_len_mean": 966.35,
+      "char_len_min": 531,
+      "char_len_max": 1669,
+      "token_est_mean": 241.24,
+      "token_est_min": 132,
+      "token_est_max": 417
+    },
+    "2025-05-18-diamond-luminosity-live-stream": {
+      "chunks": 70,
+      "char_len_mean": 920.46,
+      "char_len_min": 350,
+      "char_len_max": 1402,
+      "token_est_mean": 229.77,
+      "token_est_min": 87,
+      "token_est_max": 350
+    },
+    "2025-07-16-consciousness-psychedelics-and-collective-evolution": {
+      "chunks": 54,
+      "char_len_mean": 933.87,
+      "char_len_min": 260,
+      "char_len_max": 1524,
+      "token_est_mean": 233.11,
+      "token_est_min": 65,
+      "token_est_max": 381
+    }
+  },
+  "params": {
+    "target_chars": 1200,
+    "overlap_chars": 100
+  }
+}

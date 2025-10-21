@@ -241,7 +241,8 @@ def answer(req: AnswerRequest, authorization: Optional[str] = Security(api_key_h
     if not rows:
         rows = _RETRIEVER.search(req.query, k=8)
 
-    answer_text = answer_from_chunks(req.query, rows, max_sentences=5)
+    # NOTE: answer_from_chunks expects 'max_snippets', not 'max_sentences'
+    answer_text = answer_from_chunks(req.query, rows, max_snippets=5)
 
     citations = [
         Citation(
