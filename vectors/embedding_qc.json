@@ -1,0 +1,52 @@
+{
+  "chunks_input": "build/chunks/bache-talks.chunks.jsonl",
+  "chunks_input_sha256": "2e51753ccc9678a94e4ced33afc3e7921b4eff18361e7168d583d2cf6b6ebf7c",
+  "rows": 2762,
+  "embedding_dim": 3072,
+  "parquet_path": "vectors/bache-talks.embeddings.parquet",
+  "parquet_sha256": "d430a2f6282e5bc1b47eaa0d8f48044538c2752420cf70ae66849ce4d55c0038",
+  "faiss_path": "vectors/bache-talks.index.faiss",
+  "faiss_sha256": "dfea7d6f8b42b585664ba3c9cd536f7c6dff9638625f6b4edf0931d8ad3f921c",
+  "model": "text-embedding-3-large",
+  "batch_size": 256,
+  "citation_labels_path": "rag/citation_labels.json",
+  "citation_labels_count": 62,
+  "index_path": "index.json",
+  "index_url_entries": 62,
+  "env": {
+    "python_version": "3.12.12",
+    "faiss_cpu": "1.12.0",
+    "numpy": "2.3.4",
+    "pandas": "2.3.3",
+    "pyarrow": "21.0.0"
+  },
+  "sample_enriched_rows": [
+    {
+      "id": 0,
+      "citation": "Bache · 2014-11-10 · PCC Esalen · Chris Bache, Waking Up in the Classroom – Lessons from 30 Years of Teaching",
+      "date": "2014-11-10",
+      "venue": "PCC Esalen",
+      "url": "https://youtu.be/OJipHXvczW0",
+      "transcript_path": "sources/transcripts/2014-11-10-chris-bache-waking-up-in-the-classroom-lessons-from-30-years-of-teaching.md",
+      "chunk_index": 1
+    },
+    {
+      "id": 1,
+      "citation": "Bache · 2014-11-10 · PCC Esalen · Chris Bache, Waking Up in the Classroom – Lessons from 30 Years of Teaching",
+      "date": "2014-11-10",
+      "venue": "PCC Esalen",
+      "url": "https://youtu.be/OJipHXvczW0",
+      "transcript_path": "sources/transcripts/2014-11-10-chris-bache-waking-up-in-the-classroom-lessons-from-30-years-of-teaching.md",
+      "chunk_index": 2
+    },
+    {
+      "id": 2,
+      "citation": "Bache · 2014-11-10 · PCC Esalen · Chris Bache, Waking Up in the Classroom – Lessons from 30 Years of Teaching",
+      "date": "2014-11-10",
+      "venue": "PCC Esalen",
+      "url": "https://youtu.be/OJipHXvczW0",
+      "transcript_path": "sources/transcripts/2014-11-10-chris-bache-waking-up-in-the-classroom-lessons-from-30-years-of-teaching.md",
+      "chunk_index": 3
+    }
+  ]
+}
