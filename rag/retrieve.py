@@ -26,10 +26,10 @@ from openai import OpenAI
 load_dotenv()
 
 FAISS_INDEX_PATH = os.getenv("FAISS_INDEX_PATH", "vectors/bache-talks.index.faiss")
-METADATA_PATH = os.getenv("METADATA_PATH", "vectors/bache-talks.embeddings.parquet")
-EMBED_MODEL = os.getenv("EMBED_MODEL", "text-embedding-3-large")
-PER_TALK_CAP = int(os.getenv("MAX_PER_TALK", "3"))
-TOP_K_DEFAULT = int(os.getenv("TOP_K_DEFAULT", "8"))
+METADATA_PATH    = os.getenv("METADATA_PATH",     "vectors/bache-talks.embeddings.parquet")
+EMBED_MODEL      = os.getenv("EMBED_MODEL",       "text-embedding-3-large")
+PER_TALK_CAP     = int(os.getenv("MAX_PER_TALK",  "3"))
+TOP_K_DEFAULT    = int(os.getenv("TOP_K_DEFAULT", "8"))
 
 
 def _l2_normalize_rows(mat: np.ndarray) -> np.ndarray:
@@ -76,8 +76,7 @@ class Retriever:
         if "embedding" not in df.columns:
             raise RuntimeError("Parquet is missing 'embedding' column.")
         if "id" not in df.columns:
-            # Back-compat: synthesize ids as row index
-            df["id"] = np.arange(len(df), dtype=np.int64)
+            df["id"] = np.arange(len(df), dtype=np.int64)  # back-compat
 
         self.df = df.reset_index(drop=True)
         self.df_by_id = self.df.set_index("id", drop=False)
@@ -103,7 +102,7 @@ class Retriever:
     def _embed_query(self, query: str) -> np.ndarray:
         """Return a 1×D L2-normalized vector for cosine/IP search (NumPy 2.x safe)."""
         resp = self.client.embeddings.create(model=self.model, input=[query])
-        arr = np.asarray(resp.data[0].embedding, dtype=np.float32)  # allow copy if needed
+        arr = np.asarray(resp.data[0].embedding, dtype=np.float32)
         vec = arr.reshape(1, -1)
         return _l2_normalize_rows(vec)
 
@@ -120,24 +119,70 @@ class Retriever:
             return self.df.iloc[int(fid)]
 
     def _format_row(self, row: pd.Series, score: float) -> Dict[str, Any]:
-        """Return a clean dict with core + human-readable fields."""
+        """Return a clean dict with core + human-readable + timing fields; includes ts_url."""
+        def _clean(v):
+            # unwrap numpy scalar
+            if hasattr(v, "item"):
+                try:
+                    v = v.item()
+                except Exception:
+                    pass
+            # pandas/NumPy NA → None
+            try:
+                if pd.isna(v):
+                    return None
+            except Exception:
+                pass
+            # normalize dtypes
+            if isinstance(v, (np.floating,)):
+                v = float(v)
+            elif isinstance(v, (np.integer,)):
+                v = int(v)
+            # NaN/Inf guard
+            if isinstance(v, float) and (np.isnan(v) or np.isinf(v)):
+                return None
+            return v
+
+        def _ts_url(youtube_id, start_sec, fallback_url):
+            try:
+                if youtube_id is not None and start_sec is not None and not np.isnan(float(start_sec)):
+                    return f"https://youtu.be/{youtube_id}?t={int(max(0, float(start_sec)))}"
+            except Exception:
+                pass
+            return fallback_url or None
+
+        youtube_id = row.get("youtube_id")
+        start_sec  = row.get("start_sec")
+
         return {
             # Core retrieval info
-            "id": int(row.get("id")),
-            "_score": float(score),
-            "text": row.get("text"),
-            "talk_id": row.get("talk_id"),
-            "archival_title": row.get("archival_title"),
-            "chunk_index": row.get("chunk_index"),
-            "published": row.get("published"),
-            "channel": row.get("channel"),
-            "source_type": row.get("source_type"),
-            # Human-readable citation metadata (added in the new pipeline)
-            "citation": row.get("citation"),
-            "date": row.get("date"),
-            "venue": row.get("venue"),
-            "url": row.get("url"),
-            "transcript_path": row.get("transcript_path"),
+            "id": _clean(row.get("id")),
+            "_score": _clean(score),
+            "text": _clean(row.get("text")),
+            "talk_id": _clean(row.get("talk_id")),
+            "archival_title": _clean(row.get("archival_title")),
+            "chunk_index": _clean(row.get("chunk_index")),
+            "published": _clean(row.get("published")),
+            "channel": _clean(row.get("channel")),
+            "source_type": _clean(row.get("source_type")),
+
+            # Human-readable citation metadata
+            "citation": _clean(row.get("citation")),
+            "date": _clean(row.get("date")),
+            "venue": _clean(row.get("venue")),
+            "url": _clean(row.get("url")),
+            "transcript_path": _clean(row.get("transcript_path")),
+
+            # Timing
+            "youtube_id": _clean(youtube_id),
+            "start_sec": _clean(start_sec),
+            "end_sec": _clean(row.get("end_sec")),
+            "start_hhmmss": _clean(row.get("start_hhmmss")),
+            "end_hhmmss": _clean(row.get("end_hhmmss")),
+            "source_used": _clean(row.get("source_used")),   # captions|diarist
+            "method": _clean(row.get("method")),             # exact|fuzzy
+            "confidence": _clean(row.get("confidence")),
+            "ts_url": _clean(_ts_url(youtube_id, start_sec, row.get("url"))),
         }
 
     # ---------- Public API ----------
@@ -161,7 +206,7 @@ class Retriever:
 
         Returns
         -------
-        List[dict] with text, citation, url, etc.
+        List[dict] with text, citation, url, timing, ts_url, etc.
         """
         k = k or self.top_k_default
         qv = self._embed_query(query)
@@ -245,15 +290,11 @@ def search_chunks(query: str, top_k: int = TOP_K_DEFAULT, filters: Optional[Dict
 
 
 def rag_status() -> Dict[str, Any]:
-    """
-    Return a dict suitable for the /_rag_status endpoint without performing any embeddings.
-    """
-    # Avoid throwing if OPENAI_API_KEY is missing; still report useful info
+    """Return a dict suitable for the /_rag_status endpoint without performing any embeddings."""
     try:
         r = _get_retriever()
         status = r.status()
     except Exception as e:
-        # best-effort path existence reporting
         status = {
             "error": f"{type(e).__name__}: {e}",
             "faiss_index_path": FAISS_INDEX_PATH,
@@ -270,7 +311,10 @@ if __name__ == "__main__":
     print("STATUS:", r.status())
     hits = r.search("What does Bache mean by Diamond Luminosity?", k=5)
     for h in hits:
-        src = h.get("citation") or h.get("transcript_path")
-        print(f"— {src} · chunk {h.get('chunk_index')} · score {h['_score']:.4f}")
-        if h.get("url"):
+        label = h.get("citation") or h.get("archival_title") or h.get("talk_id")
+        ts = ""
+        if h.get("start_hhmmss") and h.get("youtube_id") and isinstance(h.get("start_sec"), (int, float)):
+            ts = f" [{h['start_hhmmss']}] https://youtu.be/{h['youtube_id']}?t={int(h['start_sec'])}"
+        print(f"— {label} · score {h['_score']:.4f}{ts}")
+        if not ts and h.get("url"):
             print(f"   {h['url']}")
