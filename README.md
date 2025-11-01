@@ -163,3 +163,9 @@ and his decades-long exploration of consciousness and the “Future Human.”
 Developed by the Bache Archive Project to preserve, search, and share these teachings for future generations.
 
 “Preserving the living voice of humanity’s awakening — one talk at a time.”
+
+
+---
+All Wikidata QIDs and identifiers in this repository are maintained in the canonical registry:
+[bache-archive-meta](https://github.com/bache-archive/bache-archive-meta)
+
