@@ -33,6 +33,14 @@ and produces grounded multi-talk summaries for scholarly, historical, and spirit
 | `/search` | `POST` | Semantic nearest-neighbor search. Returns top-k transcript chunks matching a natural-language query. |
 | `/answer` | `POST` | Synthesizes a concise, citation-grounded answer from retrieved chunks. |
 
+## Repository Guardrails
+
+- Use remote `git@github-bache:bache-archive/bache-rag-api.git`.
+- Use local Git identity `Bache Archive <bache-archive@tuta.com>`.
+- Keep the `meta` submodule on `git@github-bache:bache-archive/bache-archive-meta.git`; do not use default `github.com` or HTTPS remotes for archive repositories.
+- Keep `logs/`, local `.env*`, and new `reports/quote_packs/<date>/` output out of commits unless explicitly justified.
+- Do not deploy, link, or configure this service from personal GitHub, Vercel, Render, or API accounts.
+
 ### Example Request
 
 ```bash
@@ -40,6 +48,7 @@ curl -X POST https://bache-rag-api.onrender.com/search \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"query":"Diamond Luminosity","top_k":3}'
+```
 
 
 ⸻
@@ -71,32 +80,57 @@ They are bundled locally in vectors/ for deterministic builds on Render.
 
 🚀 Local Development
 
+```bash
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+```
 
 Run the API locally:
 
+```bash
 export API_KEY=dev
 uvicorn app:app --host 0.0.0.0 --port 8000
+```
 
 Test:
 
+```bash
 curl -s -X POST http://localhost:8000/search \
   -H "Authorization: Bearer dev" \
   -H "Content-Type: application/json" \
   -d '{"query":"Diamond Luminosity"}' | jq
+```
 
 Quick status check (from any shell):
 
+```bash
 curl -sS https://bache-rag-api.onrender.com/_debug | jq
 curl -sS https://bache-rag-api.onrender.com/_rag_status | jq
+```
+
+Representative behavior checks before retrieval or answer changes:
+
+```bash
+curl -s -X POST http://localhost:8000/search \
+  -H "Authorization: Bearer dev" \
+  -H "Content-Type: application/json" \
+  -d '{"query":"Diamond Luminosity","top_k":3}' | jq
+
+curl -s -X POST http://localhost:8000/answer \
+  -H "Authorization: Bearer dev" \
+  -H "Content-Type: application/json" \
+  -d '{"query":"Future Human"}' | jq
+```
+
+Repeat representative `/search` and `/answer` checks for Diamond Luminosity, Future Human, reincarnation, and collective consciousness when retrieval, vector, or answer behavior changes.
 
 
 ⸻
 
 🌐 Deployment (Render)
 
+```yaml
 # render.yaml
 services:
   - type: web
@@ -104,6 +138,7 @@ services:
     env: python
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+```
 
 Environment Variables
 
@@ -160,7 +195,7 @@ v1.0-alpha (2025-10-15) — First Live RAG Deployment
 
 Based on the visionary public teachings of Christopher M. Bache,
 and his decades-long exploration of consciousness and the “Future Human.”
-Developed by the Bache Archive Project to preserve, search, and share these teachings for future generations.
+Developed by the Bache Archive maintainer to preserve, search, and share these teachings for future generations.
 
 “Preserving the living voice of humanity’s awakening — one talk at a time.”
 
@@ -168,4 +203,3 @@ Developed by the Bache Archive Project to preserve, search, and share these teac
 ---
 All Wikidata QIDs and identifiers in this repository are maintained in the canonical registry:
 [bache-archive-meta](https://github.com/bache-archive/bache-archive-meta)
-

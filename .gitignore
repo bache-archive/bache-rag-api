@@ -32,6 +32,10 @@ build/
 *.swp
 *.swo
 
+# Local runtime and generated report scratch
+logs/
+reports/quote_packs/*/
+
 # --- Environment & secrets ---
 .env
 .env.*

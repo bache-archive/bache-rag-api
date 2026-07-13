@@ -1,7 +1,7 @@
 # Privacy Policy — Bache Talks Librarian (Custom GPT)
 
 **Effective Date:** October 15, 2025  
-**Maintained by:** Bache Archive Project  
+**Maintained by:** Bache Archive maintainer
 **Contact:** bache-archive@tuta.com
 
 ---
@@ -41,5 +41,5 @@ Questions or concerns can be directed to [bache-archive@tuta.com](mailto:bache-a
 
 ---
 
-© 2025 Bache Archive Project.  
+© 2025 Bache Archive maintainer.
 All public content in the Bache Talks Archive is released under **CC0 1.0**.
